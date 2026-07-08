@@ -36,3 +36,8 @@ For a real production host, generate a **separate** deployment repo using `docke
 ## 4. CI must exercise the install path
 
 Every change to the framework must be validated by a workflow that runs `docker-git-deploy-skill/scripts/install.sh` against the repo and then invokes `docker-git-deploy validate` and `docker-git-deploy deploy`. Static compose validation alone is not enough.
+
+Pitfalls learned:
+
+- Do **not** use `docker/setup-docker-action@v4` in CI unless necessary; it can leave iptables chains half-initialized and cause `docker compose` network creation to fail.
+- Use the preinstalled Docker on `ubuntu-latest` runners for the install test.

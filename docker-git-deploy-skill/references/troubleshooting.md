@@ -40,3 +40,23 @@ journalctl -u docker-git-deploy.service -n 50
 ## `.env` values not picked up
 
 Docker Compose reads `.env` from the working directory of the command. If you run `docker compose` from a subdirectory, it will not see the root `.env`. The systemd unit sets `WorkingDirectory` correctly; verify with `systemctl cat docker-git-deploy.service`.
+
+## GitHub Actions install test fails with iptables chain error
+
+If the workflow uses `docker/setup-docker-action@v4`, a custom Docker daemon may start without fully initializing iptables chains. Compose then fails with:
+
+```
+failed to create network docker-git-deploy_default:
+  Chain 'DOCKER-ISOLATION-STAGE-2' does not exist
+```
+
+Fix: remove `docker/setup-docker-action@v4` and rely on the Docker that is preinstalled on `ubuntu-latest` GitHub runners.
+
+## CI fails but it looks like a networking error
+
+GitHub runner networking is rarely the cause. Inspect the workflow logs. Common culprits:
+
+- Custom Docker setup action breaking iptables (see above)
+- Missing env vars required for `docker compose config` validation
+- Using `docker-compose` (legacy binary) instead of `docker compose` (plugin)
+- `docker compose` trying to create networks before the daemon is ready

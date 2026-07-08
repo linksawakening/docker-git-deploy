@@ -1,8 +1,8 @@
 ---
 name: docker-git-deploy-skill
 description: Hermes agent skill for docker-git-deploy. Deploy Docker Compose services with pull-based GitOps. Helps the user generate a deployment repo, add services, test locally, and bootstrap a production host.
-version: 2.0.0
-author: Hermes Agent
+version: 3.0.0
+author: linksawakening
 license: MIT
 metadata:
   hermes:
@@ -36,6 +36,7 @@ The agent edits the deployment repo; the production host pulls changes and appli
 - User mentions `docker-git-deploy`, `docker-git-deploy`, or pull-based deployment.
 - User wants to add/update/remove a service on a docker-git-deploy-managed host.
 - User reports that the production host is not deploying changes.
+- User is confused why there are two `SKILL.md` files in the repo (there should be only one, at `docker-git-deploy-skill/SKILL.md`).
 
 ## Install the skill
 
@@ -73,12 +74,14 @@ docker-git-deploy/                    # GitHub repo = canonical deployment examp
 │   ├── install-test.yaml           # CI: test install.sh against this repo
 │   └── validate.yaml               # CI: validate compose
 └── docker-git-deploy-skill/          # framework + this agent skill
-    ├── SKILL.md
+    ├── SKILL.md                     # <-- only SKILL.md in the repo
     ├── scripts/
     │   ├── install.sh             # one-command production install
-    │   ├── docker-git-deploy              # CLI entrypoint
+    │   ├── docker-git-deploy              # CLI entrypoint (shorthand name kept by user preference)
     │   ├── deploy.sh              # deploy hook (used by systemd)
-    │   └── init-deployment.sh     # generator for separate deployment repos
+    │   ├── init-deployment.sh     # interactive generator for separate deployment repos
+    │   ├── generate-separate-deployment.sh  # non-interactive generator
+    │   └── validate-repo-structure.sh       # sanity-check repo shape
     ├── templates/
     │   ├── docker-git-deploy-starter/   # minimal separate-deployment starter
     │   ├── services/                    # service catalog
@@ -87,6 +90,7 @@ docker-git-deploy/                    # GitHub repo = canonical deployment examp
         ├── prerequisites.md
         ├── security-model.md
         ├── troubleshooting.md
+        ├── design-constraints.md
         ├── agent-flow.md
         ├── production-install.md
         └── service-catalog.md
@@ -132,14 +136,24 @@ cd ~/.hermes/skills/devops/docker-git-deploy
 
 Answer the prompts with the user's choices.
 
+Or generate non-interactively:
+
+```bash
+./docker-git-deploy-skill/scripts/generate-separate-deployment.sh \
+  --target-dir ~/my-host-deploy \
+  --repo-name my-host-deploy \
+  --host-name my-host \
+  --org my-github-org
+```
+
 ### 4. Add service definitions
 
-Copy service templates from `~/.hermes/skills/devops/docker-git-deploy/docker-git-deploy-skill/templates/services/<name>/` into the new deployment repo's `services/` directory. Update root `compose.yaml` to include them. Update `.env.example` with required variables.
+Copy service templates from the repo root `services/<name>/` or from `docker-git-deploy-skill/templates/docker-git-deploy-starter/services/example-service/` into the new deployment repo's `services/` directory. Update root `compose.yaml` to include them. Update `.env.example` with required variables.
 
 Available catalog:
 
-- `docker-git-deploy-skill/templates/services/searxng/` — SearXNG meta-search engine
-- `docker-git-deploy-skill/templates/services/example-service/` — minimal nginx example
+- `services/searxng/` — SearXNG meta-search engine (canonical example in this repo)
+- `docker-git-deploy-skill/templates/docker-git-deploy-starter/services/example-service/` — minimal nginx example
 
 ### 5. Test locally
 
@@ -230,12 +244,18 @@ Then confirm the timer is active and the first deploy succeeded.
 - Using `docker-compose` (legacy binary) instead of `docker compose` (plugin).
 - Running the install command without root.
 - Health check URL not matching the actual service port.
+- Putting executable tooling or bootstrap scripts in the deployment repo — keep deployment repos pure config. All tooling belongs in the framework (`docker-git-deploy-skill/`).
+- Naming the framework folder something other than the skill name. The folder, skill name, and install path must match (`docker-git-deploy-skill/`).
+- Having more than one `SKILL.md` in the repo. There must be exactly one, at `docker-git-deploy-skill/SKILL.md`.
+- Using `docker/setup-docker-action@v4` in CI; prefer the Docker already present on `ubuntu-latest` runners.
 
 ## References
 
 - `docker-git-deploy-skill/references/prerequisites.md` — target host requirements
 - `docker-git-deploy-skill/references/security-model.md` — keys, scopes, threat model
-- `docker-git-deploy-skill/references/troubleshooting.md` — common failure modes
+- `docker-git-deploy-skill/references/troubleshooting.md` — common failure modes, including CI iptables issues
+- `docker-git-deploy-skill/references/design-constraints.md` — architectural guardrails
 - `docker-git-deploy-skill/references/agent-flow.md` — decision tree for the agent
 - `docker-git-deploy-skill/references/production-install.md` — copy-paste install commands
 - `docker-git-deploy-skill/references/service-catalog.md` — service definitions and their requirements
+- `docker-git-deploy-skill/scripts/validate-repo-structure.sh` — verify the repo still has exactly one `SKILL.md` and a pure-config root
