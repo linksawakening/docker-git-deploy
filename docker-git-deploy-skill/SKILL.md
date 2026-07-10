@@ -91,6 +91,11 @@ cannot install these; point the user to `references/prerequisites.md`.
 
 ### 2. Interview the user
 
+If the host already has running services, first inspect existing compose files or
+deployment repos on the agent machine and in Hindsight memory (see
+`references/migrating-existing-host-services.md`). Reconcile the new repo with
+those real configs instead of inventing defaults.
+
 | Question | Default | Used for |
 |----------|---------|----------|
 | Production host name? | none | docs / repo name |
@@ -191,10 +196,22 @@ journalctl -u docker-git-deploy.service -f
   and a `healthcheck:`.
 - Using legacy `docker-compose` instead of the `docker compose` plugin.
 - Running the bootstrap install command without root.
+- GitHub owner mismatch when creating the deployment repo: `gh repo create
+  <other-owner>/<repo>` fails if you are authenticated as a different user. Create
+  the repo under the authenticated account, invite the target owner as a
+  collaborator (or transfer the repo through the GitHub UI), and update the
+  bootstrap URL in `README.md` accordingly. See
+  `references/github-owner-mismatch-workaround.md` for the exact recipe.
 
 ## References
 - `references/prerequisites.md` — host requirements
 - `references/security-model.md` — pull model, credential scopes, docker.sock caveat
 - `references/design-constraints.md` — why deployment repos stay pure config
 - `references/troubleshooting.md` — failure modes, `--wait`/rollback, CI iptables
+- `references/github-owner-mismatch-workaround.md` — when the requested repo owner differs from the authenticated GitHub account
+- `references/common-service-recipes.md` — ready-to-use compose fragments for frequently deployed services
+- `references/service-recipe-searxng.md` — SearXNG metasearch engine
+- `references/service-recipe-hindsight.md` — Hindsight memory agent using Synthetic LLM
+- `references/service-recipe-maple-proxy.md` — Maple Proxy LLM API proxy (secret key via client header)
+- `references/migrating-existing-host-services.md` — bringing an already-running homelab host under docker-git-deploy
 - `scripts/validate-repo-structure.sh` — verify a deployment repo is pure config
