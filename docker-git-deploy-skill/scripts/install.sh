@@ -70,8 +70,8 @@ command -v curl >/dev/null 2>&1 || fail "curl is required"
 # Prefer a local clone when install.sh is run from one (used by CI and local
 # development); otherwise clone the framework repo.
 FRAMEWORK_DIR=""
-SCRIPT_PATH="${BASH_SOURCE[0]}"
-if [[ -f "$SCRIPT_PATH" ]]; then
+SCRIPT_PATH="${BASH_SOURCE[0]:-}"
+if [[ -n "$SCRIPT_PATH" && -f "$SCRIPT_PATH" ]]; then
     CANDIDATE="$(cd "$(dirname "$SCRIPT_PATH")/.." && pwd)"  # .../docker-git-deploy-skill
     if [[ -f "$CANDIDATE/scripts/docker-git-deploy" ]]; then
         FRAMEWORK_DIR="$CANDIDATE"
